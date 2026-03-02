@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ball Sort Puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0e17;
+    --surface: #1a1a2e;
+    --accent: #e94560;
+    --gold: #ffd700;
+    --text: #fffffe;
+    --muted: #a7a9be;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(233,69,96,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 60% 80%, rgba(16,185,129,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 28px 20px 8px;
+  }
+
+  header h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #ff6b9d, #ffd700, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  /* HUD */
+  .hud {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 16px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hud-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 8px 20px;
+    text-align: center;
+    min-width: 90px;
+    backdrop-filter: blur(10px);
+  }
+
+  .hud-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+  }
+
+  .hud-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: var(--gold);
+    line-height: 1.2;
+  }
+
+  /* Controls */
+  .controls {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #e94560, #c0392b);
+    color: white;
+    box-shadow: 0 4px 15px rgba(233,69,96,0.4);
+  }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, #ffd700, #f59e0b);
+    color: #1a1a00;
+    box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+  }
+
+  button:hover { transform: translateY(-2px); filter: brightness(1.1); }
+  button:active { transform: translateY(0); }
+
+  /* Difficulty selector */
+  .difficulty {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .diff-btn {
+    padding: 6px 16px;
+    border-radius: 50px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .diff-btn.active {
+    background: rgba(99,102,241,0.3);
+    border-color: #6366f1;
+    color: white;
+  }
+
+  /* Game area */
+  #game-area {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    padding: 10px 20px 30px;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  /* Tube */
+  .tube-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .tube-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    opacity: 0;
+  }
+
+  .tube {
+    width: 52px;
+    height: 210px;
+    background: rgba(255,255,255,0.04);
+    border: 2px solid rgba(255,255,255,0.12);
+    border-top: none;
+    border-radius: 0 0 30px 30px;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    padding: 4px 4px 8px;
+    gap: 3px;
+    position: relative;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+  }
+
+  .tube::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .tube.selected {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 20px rgba(255,215,0,0.3), inset 0 0 20px rgba(255,215,0,0.05);
+  }
+
+  .tube.valid-target {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 20px rgba(16,185,129,0.3);
+    animation: pulse-green 1s infinite;
+  }
+
+  .tube.complete {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 25px rgba(99,102,241,0.5);
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 15px rgba(16,185,129,0.3); }
+    50% { box-shadow: 0 0 30px rgba(16,185,129,0.6); }
+  }
+
+  /* Ball */
+  .ball {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    transition: transform 0.15s;
+  }
+
+  .ball::after {
+    content: '';
+    position: absolute;
+    top: 6px; left: 8px;
+    width: 10px; height: 6px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 50%;
+    transform: rotate(-30deg);
+  }
+
+  .tube-wrap.selected .tube .ball:last-child {
+    transform: translateY(-6px);
+    filter: brightness(1.2);
+  }
+
+  /* Ball colors */
+  .c0 { background: radial-gradient(circle at 35% 35%, #ff8a80, #e53935); }
+  .c1 { background: radial-gradient(circle at 35% 35%, #82b1ff, #1565c0); }
+  .c2 { background: radial-gradient(circle at 35% 35%, #b9f6ca, #2e7d32); }
+  .c3 { background: radial-gradient(circle at 35% 35%, #ffd180, #e65100); }
+  .c4 { background: radial-gradient(circle at 35% 35%, #ea80fc, #6a1b9a); }
+  .c5 { background: radial-gradient(circle at 35% 35%, #84ffff, #00838f); }
+  .c6 { background: radial-gradient(circle at 35% 35%, #f4ff81, #9e9d24); }
+  .c7 { background: radial-gradient(circle at 35% 35%, #ff80ab, #880e4f); }
+  .c8 { background: radial-gradient(circle at 35% 35%, #ccff90, #33691e); }
+  .c9 { background: radial-gradient(circle at 35% 35%, #ffd740, #ff6d00); }
+
+  /* Win overlay */
+  #win-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  #win-overlay.show { display: flex; }
+
+  .win-card {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 24px;
+    padding: 48px 56px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 80px rgba(255,215,0,0.15);
+    animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes pop-in {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .win-emoji { font-size: 4rem; margin-bottom: 12px; display: block; }
+
+  .win-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #ffd700, #ff6b9d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .win-stats {
+    color: var(--muted);
+    margin-bottom: 28px;
+    font-size: 1rem;
+  }
+
+  .win-stats span { color: var(--gold); font-weight: 700; }
+
+  /* Move counter animation */
+  @keyframes bump {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+
+  .bump { animation: bump 0.2s; }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    top: -10px;
+    border-radius: 2px;
+    animation: confetti-fall linear forwards;
+    z-index: 101;
+  }
+
+  @keyframes confetti-fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: rgba(233,69,96,0.9);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    z-index: 50;
+    transition: transform 0.3s;
+    backdrop-filter: blur(10px);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔮 Ball Sort</h1>
+  <p class="subtitle">Sort the balls by color — one tube at a time</p>
+</header>
+
+<div class="hud">
+  <div class="hud-card">
+    <div class="hud-label">Moves</div>
+    <div class="hud-value" id="moves-display">0</div>
+  </div>
+  <div class="hud-card">
+    <div class="hud-label">Level</div>
+    <div class="hud-value" id="level-display">1</div>
+  </div>
+  <div class="hud-card">
+    <div class="hud-label">Best</div>
+    <div class="hud-value" id="best-display">—</div>
+  </div>
+</div>
+
+<div class="difficulty">
+  <button class="diff-btn active" data-diff="easy">Easy</button>
+  <button class="diff-btn" data-diff="medium">Medium</button>
+  <button class="diff-btn" data-diff="hard">Hard</button>
+</div>
+
+<div class="controls">
+  <button class="btn-primary" id="new-game-btn">New Game</button>
+  <button class="btn-secondary" id="undo-btn">↩ Undo</button>
+  <button class="btn-secondary" id="hint-btn">💡 Hint</button>
+</div>
+
+<div id="game-area"></div>
+
+<div id="win-overlay">
+  <div class="win-card">
+    <span class="win-emoji">🎉</span>
+    <div class="win-title">Solved!</div>
+    <div class="win-stats" id="win-stats"></div>
+    <button class="btn-gold" id="next-level-btn" style="margin-right:10px">Next Level →</button>
+    <button class="btn-secondary" id="play-again-btn">Play Again</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DIFF = {
+  easy:   { colors: 4, extraTubes: 2 },
+  medium: { colors: 6, extraTubes: 2 },
+  hard:   { colors: 8, extraTubes: 2 },
+};
+
+let tubes = [];
+let selectedIdx = null;
+let moves = 0;
+let history = [];
+let level = 1;
+let bests = {};
+let difficulty = 'easy';
+let hintsUsed = 0;
+
+const gameArea = document.getElementById('game-area');
+const movesDisplay = document.getElementById('moves-display');
+const levelDisplay = document.getElementById('level-display');
+const bestDisplay = document.getElementById('best-display');
+const winOverlay = document.getElementById('win-overlay');
+
+function TUBE_CAPACITY() { return 4; }
+
+function generateGame() {
+  const cfg = DIFF[difficulty];
+  const n = cfg.colors;
+  const extra = cfg.extraTubes;
+  const cap = TUBE_CAPACITY();
+  
+  // Create filled balls
+  let balls = [];
+  for (let c = 0; c < n; c++) {
+    for (let i = 0; i < cap; i++) balls.push(c);
+  }
+  // Shuffle
+  for (let i = balls.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [balls[i], balls[j]] = [balls[j], balls[i]];
+  }
+
+  tubes = [];
+  for (let i = 0; i < n; i++) {
+    tubes.push(balls.slice(i * cap, (i + 1) * cap));
+  }
+  for (let i = 0; i < extra; i++) tubes.push([]);
+
+  moves = 0;
+  hintsUsed = 0;
+  selectedIdx = null;
+  history = [];
+  updateHUD();
+}
+
+function render() {
+  gameArea.innerHTML = '';
+  tubes.forEach((tube, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tube-wrap';
+    
+    const tubeEl = document.createElement('div');
+    tubeEl.className = 'tube';
+    
+    const isComplete = tube.length === TUBE_CAPACITY() && tube.every(b => b === tube[0]);
+    
+    if (i === selectedIdx) wrap.classList.add('selected');
+    if (isComplete) tubeEl.classList.add('complete');
+    
+    // Highlight valid targets
+    if (selectedIdx !== null && i !== selectedIdx) {
+      const src = tubes[selectedIdx];
+      if (canMove(selectedIdx, i)) tubeEl.classList.add('valid-target');
+    }
+
+    tube.forEach(color => {
+      const ball = document.createElement('div');
+      ball.className = `ball c${color}`;
+      tubeEl.appendChild(ball);
+    });
+
+    wrap.appendChild(tubeEl);
+    wrap.addEventListener('click', () => handleClick(i));
+    gameArea.appendChild(wrap);
+  });
+}
+
+function canMove(from, to) {
+  if (from === to) return false;
+  const src = tubes[from];
+  const dst = tubes[to];
+  if (src.length === 0) return false;
+  if (dst.length === TUBE_CAPACITY()) return false;
+  if (dst.length === 0) return true;
+  return src[src.length - 1] === dst[dst.length - 1];
+}
+
+function handleClick(idx) {
+  if (selectedIdx === null) {
+    if (tubes[idx].length === 0) return;
+    // Don't select complete tubes
+    const t = tubes[idx];
+    if (t.length === TUBE_CAPACITY() && t.every(b => b === t[0])) return;
+    selectedIdx = idx;
+    render();
+  } else {
+    if (idx === selectedIdx) {
+      selectedIdx = null;
+      render();
+      return;
+    }
+    if (canMove(selectedIdx, idx)) {
+      doMove(selectedIdx, idx);
+    } else {
+      // Try selecting new tube
+      if (tubes[idx].length > 0) {
+        selectedIdx = idx;
+      } else {
+        selectedIdx = null;
+      }
+      render();
+    }
+  }
+}
+
+function doMove(from, to) {
+  // Move all contiguous top-color balls
+  const topColor = tubes[from][tubes[from].length - 1];
+  let count = 0;
+  for (let i = tubes[from].length - 1; i >= 0; i--) {
+    if (tubes[from][i] === topColor) count++;
+    else break;
+  }
+  const space = TUBE_CAPACITY() - tubes[to].length;
+  const moveCount = Math.min(count, space);
+
+  history.push(JSON.parse(JSON.stringify(tubes)));
+  
+  for (let i = 0; i < moveCount; i++) {
+    tubes[to].push(tubes[from].pop());
+  }
+  
+  moves++;
+  selectedIdx = null;
+  updateHUD();
+  render();
+  
+  if (checkWin()) {
+    setTimeout(showWin, 400);
+  }
+}
+
+function checkWin() {
+  return tubes.every(t => t.length === 0 || (t.length === TUBE_CAPACITY() && t.every(b => b === t[0])));
+}
+
+function updateHUD() {
+  movesDisplay.textContent = moves;
+  levelDisplay.textContent = level;
+  const key = `${difficulty}-${level}`;
+  const b = bests[key];
+  bestDisplay.textContent = b ? b : '—';
+}
+
+function showWin() {
+  const key = `${difficulty}-${level}`;
+  if (!bests[key] || moves < bests[key]) bests[key] = moves;
+  updateHUD();
+  
+  document.getElementById('win-stats').innerHTML = 
+    `You solved it in <span>${moves}</span> moves on level <span>${level}</span>!`;
+  winOverlay.classList.add('show');
+  spawnConfetti();
+}
+
+function spawnConfetti() {
+  const colors = ['#ff6b9d','#ffd700','#7c3aed','#10b981','#3b82f6','#f59e0b'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    el.style.animationDelay = (Math.random() * 0.5) + 's';
+    el.style.width = el.style.height = (6 + Math.random() * 8) + 'px';
+    el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function doUndo() {
+  if (history.length === 0) { showToast('Nothing to undo!'); return; }
+  tubes = history.pop();
+  moves = Math.max(0, moves - 1);
+  selectedIdx = null;
+  updateHUD();
+  render();
+}
+
+function doHint() {
+  // Find any valid move
+  for (let f = 0; f < tubes.length; f++) {
+    for (let t = 0; t < tubes.length; t++) {
+      if (canMove(f, t)) {
+        // Highlight
+        const els = gameArea.querySelectorAll('.tube-wrap');
+        els[f].querySelector('.tube').style.borderColor = '#ffd700';
+        els[f].querySelector('.tube').style.boxShadow = '0 0 20px rgba(255,215,0,0.5)';
+        els[t].querySelector('.tube').style.borderColor = '#10b981';
+        els[t].querySelector('.tube').style.boxShadow = '0 0 20px rgba(16,185,129,0.5)';
+        hintsUsed++;
+        setTimeout(() => render(), 1200);
+        return;
+      }
+    }
+  }
+  showToast('No moves available — try undoing!');
+}
+
+// Event listeners
+document.getElementById('new-game-btn').addEventListener('click', () => {
+  winOverlay.classList.remove('show');
+  generateGame();
+  render();
+});
+
+document.getElementById('undo-btn').addEventListener('click', doUndo);
+document.getElementById('hint-btn').addEventListener('click', doHint);
+
+document.getElementById('next-level-btn').addEventListener('click', () => {
+  winOverlay.classList.remove('show');
+  level++;
+  generateGame();
+  render();
+});
+
+document.getElementById('play-again-btn').addEventListener('click', () => {
+  winOverlay.classList.remove('show');
+  generateGame();
+  render();
+});
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    difficulty = btn.dataset.diff;
+    level = 1;
+    generateGame();
+    render();
+  });
+});
+
+// Start game
+generateGame();
+render();
+</script>
+</body>
+</html>
